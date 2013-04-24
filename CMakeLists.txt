@@ -1,93 +1,61 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.4)
+include(ExternalProject)
 project(whdd)
 
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
+set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -pthread -Wall -Wextra")
 
-set(WHDD_VERSION "1.1")
+if(CMAKE_BUILD_TYPE MATCHES Debug)
+  add_definitions(-DDEBUG)
+  set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -g -ggdb -O0 -fno-inline")
+endif(CMAKE_BUILD_TYPE MATCHES Debug)
 
-set(CMAKE_C_FLAGS "-pthread -Wall -Wextra ${CFLAGS}")
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS}")
-set(CMAKE_C_FLAGS_DEBUG "-O0 -g -ggdb ${CMAKE_C_FLAGS}")
+# TODO Set vars containing to deps builds
+set(NCURSES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/ncurses/install/")
+set(DIALOG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/dialog/dialog-prefix/src/dialog/")
 
-# If we in git repository, add git revision too
-if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
-	find_package(Git)
-	if(GIT_FOUND)
-		exec_program(${GIT_EXECUTABLE} ${CMAKE_SOURCE_DIR}
-			ARGS describe --always
-			OUTPUT_VARIABLE WHDD_REVISION)
-	endif(GIT_FOUND)
-	set(WHDD_VERSION "${WHDD_VERSION}-g${WHDD_REVISION}")
-endif(EXISTS "${CMAKE_SOURCE_DIR}/.git")
-
-set(CONSOLE_UI_DIR console_ui)
-set(CONSOLE_UI_SRCS
-	${CONSOLE_UI_DIR}/main.c
+# TODO Set include paths
+include_directories(BEFORE SYSTEM
+  ${NCURSES_DIR}/include/ncursesw
+  ${DIALOG_DIR}
 )
-
-set(CONSOLE_VISUALIZED_UI_DIR console_visualized_ui)
-set(CONSOLE_VISUALIZED_UI_SRCS
-	${CONSOLE_VISUALIZED_UI_DIR}/dialog_convenience.c
-	${CONSOLE_VISUALIZED_UI_DIR}/main.c
-	${CONSOLE_VISUALIZED_UI_DIR}/ncurses_convenience.c
-	${CONSOLE_VISUALIZED_UI_DIR}/vis.c
-)
-
-set(LIBDEVCHECK_DIR libdevcheck)
-set(LIBDEVCHECK_SRCS
-	${LIBDEVCHECK_DIR}/action.c
-	${LIBDEVCHECK_DIR}/device.c
-	${LIBDEVCHECK_DIR}/libdevcheck.c
-	${LIBDEVCHECK_DIR}/readtest.c
-	${LIBDEVCHECK_DIR}/utils.c
-	${LIBDEVCHECK_DIR}/zerofill.c
-	${LIBDEVCHECK_DIR}/log.c
-)
-
 include_directories(
-	${CONSOLE_UI_DIR}
-	${CONSOLE_VISUALIZED_UI_DIR}
-	${LIBDEVCHECK_DIR}
-	${CMAKE_CURRENT_BINARY_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/libdevcheck
+  ${CMAKE_CURRENT_SOURCE_DIR}/console_visualized_ui
 )
 
-include(CheckSymbolExists)
-check_symbol_exists(CLOCK_MONOTONIC_RAW "time.h" HAVE_CLOCK_MONOTONIC_RAW)
-configure_file(${LIBDEVCHECK_DIR}/config.h.in
-	${CMAKE_CURRENT_BINARY_DIR}/config.h)
+set_source_files_properties(version.h PROPERTIES GENERATED true)
+# add_custom_command(OUTPUT version.h COMMAND ./version.sh . version.h)  # TODO
 
-add_executable(whdd-cli
-	${CONSOLE_UI_SRCS}
-	${LIBDEVCHECK_SRCS}
+add_executable(whdd
+#  version.h
+  libdevcheck/device.c
+  libdevcheck/action.c
+  libdevcheck/libdevcheck.c
+  libdevcheck/log.c
+  libdevcheck/zerofill.c
+  libdevcheck/readtest.c
+  libdevcheck/utils.c
+  console_visualized_ui/vis.c
+  console_visualized_ui/main.c
+  console_visualized_ui/dialog_convenience.c
+  console_visualized_ui/ncurses_convenience.c
 )
 
-add_executable(whdd-curses
-	${CONSOLE_VISUALIZED_UI_SRCS}
-	${LIBDEVCHECK_SRCS}
-)
+add_subdirectory(external/dialog)
+add_dependencies(whdd dialog)
 
-include_directories(${DIALOG_INCLUDE_DIRS})
-target_link_libraries(whdd-cli rt pthread)
+add_library(ncurses_lib STATIC IMPORTED)
+set_property(TARGET ncurses_lib PROPERTY IMPORTED_LOCATION "${NCURSES_DIR}/lib/libncursesw.a")
+add_library(menu_lib STATIC IMPORTED)
+set_property(TARGET menu_lib PROPERTY IMPORTED_LOCATION "${NCURSES_DIR}/lib/libmenuw.a")
+add_library(dialog_lib STATIC IMPORTED)
+set_property(TARGET dialog_lib PROPERTY IMPORTED_LOCATION "${DIALOG_DIR}/libdialog.a")
 
-find_package(DIALOG REQUIRED)
-find_library(MENUW_LIBRARY menuw)
-find_library(NCURSESW_LIBRARY ncursesw)
-if(DIALOG_FOUND AND MENUW_LIBRARY AND NCURSESW_LIBRARY)
-	target_link_libraries(whdd-curses 
-		${DIALOG_LIBRARIES} ${MENUW_LIBRARY} ${NCURSESW_LIBRARY} rt pthread)
-else()
-	message(FATAL_ERROR "Dialog or menuw library not found!")
-endif(DIALOG_FOUND AND MENUW_LIBRARY AND NCURSESW_LIBRARY)
-install(TARGETS whdd-cli whdd-curses DESTINATION sbin)
-
-# Packaging stuff
-# 'make package_source' to make tarball
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "WHDD is a diagnostic and recovery tool for block devices.")
-set(CPACK_PACKAGE_VENDOR "Andrey 'Krieger' Utkin <andrey.krieger.utkin@gmail.com>")
-set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README")
-set(CPACK_PACKAGE_VERSION ${WHDD_VERSION})
-#set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/COPYING")
-set(CPACK_SOURCE_PACKAGE_FILE_NAME
-	"${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION}")
-set(CPACK_SOURCE_GENERATOR TBZ2)
-include(CPack)
+target_link_libraries(whdd dialog_lib)
+target_link_libraries(whdd menu_lib)
+target_link_libraries(whdd ncurses_lib)
+target_link_libraries(whdd pthread)
+target_link_libraries(whdd dl)
+target_link_libraries(whdd rt)
+target_link_libraries(whdd m)
