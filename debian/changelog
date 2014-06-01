@@ -1,3 +1,9 @@
+whdd (2.1-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Eugene San (eugenesan) <eugenesan@gmail.com>  Sun, 01 Jun 2014 20:02:14 +0300
+
 whdd (2.0.1-1) unstable; urgency=low
 
   * Initial release
