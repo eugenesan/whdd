@@ -8,7 +8,7 @@ struct smart_show_priv {
 typedef struct smart_show_priv SmartShowPriv;
 
 static int Open(DC_ProcedureCtx *ctx) {
-    char *text = dc_dev_smartctl_text(ctx->dev->dev_path, " -i -s on -A --log=selftest ");
+    char *text = dc_dev_smartctl_text(ctx->dev->dev_path, " -i -s on -A -f brief --health --log=selftest ");
     if (text) {
         dc_log(DC_LOG_INFO, "%s", text);
         free(text);
