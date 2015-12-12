@@ -4,7 +4,7 @@
 #export DH_VERBOSE=1
 
 VERSION := $(shell dpkg-parsechangelog | grep '^Version:' | cut -d' ' -f2 | cut -d- -f1 | cut -d\: -f2)
-
+PACKAGE := $(shell dh_listpackages)
 %:
 	dh $@
 
@@ -15,3 +15,32 @@ override_dh_clean:
 override_dh_auto_configure:
 	dh_auto_configure
 	echo "$(VERSION)" > VERSION
+
+# Build a tarball with the latest upstream version.
+# This is made complicated by the need to choose a nice version number.
+REPO = https://github.com/whdd/whdd.git
+BRANCH = master
+get-orig-source:
+	mkdir debian-orig-source
+	-set -e; cd debian-orig-source; \
+	: Fetch latest upstream version.; \
+		git init -q; \
+		git fetch -q --tags $(REPO); \
+		git fetch -q $(REPO) $(BRANCH); \
+	: Determine version number.; \
+		commit_name=$$(git describe FETCH_HEAD); \
+		release=$${commit_name%%-*}; \
+		date=$$(date --utc --date="$$( \
+			git log -1 --pretty=format:%cD "$$commit_name" \
+			)" "+%Y%m%d"); \
+		if test "$$commit_name" = "$$release"; \
+		then upstream_version=$${commit_name#v}; \
+		else upstream_version="$${release#v}+$${date}"; \
+		fi; \
+	: Generate tarball.; \
+		echo "packaging $$commit_name"; \
+		git archive --format=tar "$$commit_name" \
+			--prefix="$(PACKAGE)-$$upstream_version/" | \
+		gzip -n --rsyncable -9 \
+			> "../$(PACKAGE)_$$upstream_version.orig.tar.gz"
+	rm -fr debian-orig-source
