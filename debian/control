@@ -2,9 +2,10 @@ Source: whdd
 Section: utils
 Priority: extra
 Maintainer: Eugene San (eugenesan) <eugenesan@gmail.com>
-Build-Depends: debhelper (>= 8.0.0), libncurses5-dev, libncursesw5-dev, libtinfo-dev, dialog, cmake
+Build-Depends: debhelper (>= 8.0.0), libncurses5-dev, libncursesw5-dev, libtinfo-dev, dialog
 Standards-Version: 3.9.4
-Homepage: https://github.com/krieger-od/whdd/
+Homepage: http://whdd.org/
+Vcs-Browser: https://github.com/whdd/whdd/
 
 Package: whdd
 Architecture: any

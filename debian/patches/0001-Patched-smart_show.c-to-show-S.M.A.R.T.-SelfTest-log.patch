@@ -1,0 +1,26 @@
+From 97603b21f7e977c67a7bfbdc35c4ea5c62468a8e Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Mantas=20Kriau=C4=8Di=C5=ABnas?= <mantas@akl.lt>
+Date: Wed, 18 Jun 2014 09:57:42 +0300
+Subject: [PATCH] Patched smart_show.c to show S.M.A.R.T. SelfTest log and
+ attributes (fits in 80 characters)
+
+---
+ libdevcheck/smart_show.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/libdevcheck/smart_show.c b/libdevcheck/smart_show.c
+index 555b808..35f2e70 100644
+--- a/libdevcheck/smart_show.c
++++ b/libdevcheck/smart_show.c
+@@ -8,7 +8,7 @@ struct smart_show_priv {
+ typedef struct smart_show_priv SmartShowPriv;
+ 
+ static int Open(DC_ProcedureCtx *ctx) {
+-    char *text = dc_dev_smartctl_text(ctx->dev->dev_path, " -i -s on -A ");
++    char *text = dc_dev_smartctl_text(ctx->dev->dev_path, " -i -s on -A -f brief --health --log=selftest ");
+     if (text) {
+         dc_log(DC_LOG_INFO, "%s", text);
+         free(text);
+-- 
+2.6.4
+
