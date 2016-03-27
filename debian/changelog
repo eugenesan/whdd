@@ -1,3 +1,9 @@
+whdd (2.2+20160129-1) unstable; urgency=medium
+
+  * New upstream snapshot (2.2-1d2a598)
+
+ -- Eugene San (eugenesan) <eugenesan@gmail.com>  Sat, 26 Mar 2016 23:44:08 -0400
+
 whdd (2.2+20151212-1) unstable; urgency=medium
 
   * New upstream snapshot (2.2-6-g3a4fbeb)
